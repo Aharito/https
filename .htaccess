@@ -5,7 +5,7 @@
 
 #php_flag register_globals Off
 AddDefaultCharset utf-8
-php_value date.timezone Asia/Novosibirsk
+php_value date.timezone Asia/Krasnoyarsk
 
 #Options +FollowSymlinks
 RewriteEngine On
@@ -25,49 +25,39 @@ RewriteRule .* - [F,L]
 #RewriteRule .* https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
 
 # Способ 3 - для Джино работает
-# Все страницы http с www перенаправляем на https без www
+# Все страницы http с www (кроме роботс) ОДНИМ ШАГОМ перенаправляем на https без www
 # http://www.domain.com -> https://domain.com
 RewriteCond %{HTTP:X-Forwarded-Protocol} !=https
+# "Защищаем" robots.txt
+# То есть здесь и везде далее оставляем его доступным и по http, и по https, и с www, и без www (для Яндекса, чтобы не получать сообщение "Не найден файл robots.txt")
 RewriteCond %{REQUEST_URI} !^/robots\.txt$
 RewriteCond %{HTTP_HOST} .
 RewriteCond %{HTTP_HOST} ^www.(.*)$ [NC]
 RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
 
-# Перенаправляем роботс с www и http на http без www (сохраняем пока этот "обычный" роботс для Яндекса)
-# http://www.domain.com/robots.txt -> http:/domain.com/robots.txt 
-RewriteCond %{HTTP:X-Forwarded-Protocol} !=https
-RewriteCond %{REQUEST_URI} ^/robots\.txt$
-RewriteCond %{HTTP_HOST} .
-RewriteCond %{HTTP_HOST} ^www.(.*)$ [NC]
-RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
 
-
-# Остальные страницы все перенаправляем на https, в нашем случае перенаправятся оставшиеся
-# после применения предыдущих правил страницы http без www
+# Оставшиеся после предыдущих правил страницы (это http без www, кроме роботс) все перенаправляем на https без www
 # http://domain.com -> https://domain.com
 RewriteCond %{HTTP:X-Forwarded-Protocol} !=https
-# Некоторое время сохраняем robots.txt доступным и по старому протоколу http (для Яндекса, чтобы не получать сообщение "Не найден файл robots.txt")
+# "Защищаем" robots.txt
 RewriteCond %{REQUEST_URI} !^/robots\.txt$
-# След. строчка 54 для sitemap (в отличие от строки 50 для роботс) НЕ РАБОТАЕТ.
-# Выдает не-ЧПУ адрес с переадресацией на https://aharito.ru/index.php?q=sitemap.xml
-# RewriteCond %{REQUEST_URI} !^(/sitemap\.xml)$
 RewriteRule .* https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
 
 
-# Rewrite domain.com -> www.domain.com -- used with SEO Strict URLs plugin
-#RewriteCond %{HTTP_HOST} .
-#RewriteCond %{HTTP_HOST} !^www\.example\.com [NC]
-#RewriteRule (.*) http://www.example.com/$1 [R=301,L]
+# Страницы https с www (кроме роботс) перенаправляем на https без www
+# https://www.domain.com -> https://domain.com
+RewriteCond %{HTTP:X-Forwarded-Protocol} =https
+# "Защищаем" robots.txt
+RewriteCond %{REQUEST_URI} !^/robots\.txt$
+RewriteCond %{HTTP_HOST} .
+RewriteCond %{HTTP_HOST} ^www.(.*)$ [NC]
+RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
 
-# without www
-#RewriteCond %{HTTP_HOST} .
-#RewriteCond %{HTTP_HOST} !^aharito\.ru [NC]
-#RewriteRule (.*) https://aharito.ru/$1 [R=301,L]
-
-# without www  all domian
-#RewriteCond %{HTTP_HOST} .
-#RewriteCond %{HTTP_HOST} ^www.(.*)$ [NC]
-#RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
+# 301 that removes index.php?q= from all urls
+#RewriteCond %{THE_REQUEST} \s/+index\.php\?&q=([^\s&]+) [NC]
+#RewriteRule ^ /%1? [R=301,L]
+#RewriteCond %{THE_REQUEST} \s/+index\.php\?q=([^\s&]+) [NC]
+#RewriteRule ^ /%1? [R=301,L]
 
 # Exclude /assets and /manager directories and images from rewrite rules
 RewriteRule ^(manager|assets|js|css|images|img)/.*$ - [L]
